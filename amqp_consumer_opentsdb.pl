@@ -38,7 +38,8 @@ while(1) {
                                       Timeout  => 10);
     if ($sock) {
       foreach my $line (split(/\n/, $msg->{'body'})) {
-        if ($line =~ /((?:[^.]+\.)+)([^.]+)\.([^.]+)\s(\d+)\s(\d+)/) {
+        print "IN: $line\n" if $options{'debug'};
+        if ($line =~ /((?:[^.]+\.)+)([^.]+)\.([^.]+)\s(\d+(\.\d+)?)\s(\d+)/) {
           my ($metric, $timestamp, $value, $datacenter, $host) = ($1, $5, $4, $2, $3);
           chop($metric);
 	  print "OUT: put $metric $timestamp $value datacenter=$datacenter host=$host\n" if $options{'debug'};
