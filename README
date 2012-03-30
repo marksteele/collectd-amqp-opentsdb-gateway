@@ -1,0 +1,20 @@
+AMQP to Graphite and OpenTSDB gateways.
+
+Input format is assumed to be:
+some.metric.name.datacenter.host value timestamp
+
+The OpenTSDB gateway will transform datacenter and host to be tags.
+
+Command line options:
+
+perl amqp_consumer_opentsdb.pl \
+--var amqp_host=127.0.0.1 \
+--var amqp_port=5672 \
+--var amqp_user=username \
+--var amqp_password=password \
+--var amqp_vhost=/vhost \
+--var amqp_exchange=metrics \
+--var amqp_queue=queue \
+--var opentsdb_host=127.0.0.1 \
+--var opentsdb_port=4242 \
+--var debug=1
