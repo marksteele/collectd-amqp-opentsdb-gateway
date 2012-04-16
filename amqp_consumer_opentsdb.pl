@@ -5,7 +5,7 @@ use Data::Dumper;
 use Net::RabbitMQ;
 use IO::Socket;
 use Getopt::Long;
-
+use JSON;
 my %options;
 $options{'amqp_host'} = '127.0.0.1';
 $options{'amqp_port'} = 5672;
@@ -17,6 +17,7 @@ $options{'amqp_queue'} = 'consumerqueue';
 $options{'opentsdb_host'} = '127.0.0.1';
 $options{'opentsdb_port'} = 4242;
 $options{'debug'} = 0;
+$options{'input_format'} = 'json';
 GetOptions ("var=s" => \%options);
 $options{'amqp_queue'} .= $$;
 
@@ -32,19 +33,36 @@ $mq->consume(1,$options{'amqp_queue'});
 while(1) {
   my $msg = $mq->recv();
   if ($msg) {
+    print "Received AMQP payload\n" if $options{'debug'};
     my $sock = IO::Socket::INET->new(PeerAddr => $options{'opentsdb_host'},
                                       PeerPort => $options{'opentsdb_port'},
                                       Proto    => 'tcp',
-                                      Timeout  => 10);
+                                      Timeout  => 1);
     if ($sock) {
       foreach my $line (split(/\n/, $msg->{'body'})) {
         print "IN: $line\n" if $options{'debug'};
-        if ($line =~ /((?:[^.]+\.)+)([^.]+)\.([^.]+)\s(\d+(\.\d+)?)\s(\d+)/) {
-          my ($metric, $timestamp, $value, $datacenter, $host) = ($1, $5, $4, $2, $3);
-          chop($metric);
-	  print "OUT: put $metric $timestamp $value datacenter=$datacenter host=$host\n" if $options{'debug'};
-	  print $sock "put $metric $timestamp $value datacenter=$datacenter host=$host\n";
+        my $metric = {};
+        if ($options{'input_format'} eq 'graphite') {
+          if ($line =~ /((?:[^.]+\.)+)([^.]+)\.([^.]+)\s(\d+)(?:\.\d+)?\s(\d+)/) {
+            ($metric->{'metric'}, $metric->{'time'}, $metric->{'value'}, $metric->{'datacenter'}, $metric->{'host'}) = ($1, $5, $4, $2, $3);
+            chop($metric->{'metric'});
+          } else {
+            print "Error parsing input data: $line\n";
+            return; ## Error parsing input data
+          }
+        } elsif ($options{'input_format'} eq 'json') {
+          eval {
+            $metric = decode_json($line);
+          };
+          if ($@) {
+            print "Error parsing input data: $line\n";
+            return; ## Error parsing json
+          }
+        } else {
+          die("Unknown input format");
         }
+	print sprintf("OUT: put %s %d %s datacenter=%s host=%s\n",$metric->{'metric'},$metric->{'time'},$metric->{'value'},$metric->{'datacenter'},$metric->{'host'});
+	print $sock sprintf("put %s %d %s datacenter=%s host=%s\n",$metric->{'metric'},$metric->{'time'},$metric->{'value'},$metric->{'datacenter'},$metric->{'host'});
       }
       close($sock);
     }

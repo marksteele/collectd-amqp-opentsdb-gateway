@@ -1,7 +1,13 @@
 AMQP to Graphite and OpenTSDB gateways.
 
-Input format is assumed to be:
+Input format is assumed to be either in graphite format:
+
 some.metric.name.datacenter.host value timestamp
+
+Or in json format:
+{"datacenter":"east_coast","timestamp":12345678,"value":123.12,"metric":"some.metric.name","host":"127.0.0.1"}
+
+Note: Multiple metrics can be sent in one AMQP message, as long as each entry is seperated by a newline character (\n)
 
 The OpenTSDB gateway will transform datacenter and host to be tags.
 
@@ -17,4 +23,5 @@ perl amqp_consumer_opentsdb.pl \
 --var amqp_queue=queue \
 --var opentsdb_host=127.0.0.1 \
 --var opentsdb_port=4242 \
---var debug=1
+--var debug=1 \
+--var input_format=<json|graphite>
