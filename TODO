@@ -1,0 +1,5 @@
+Make the connection persistent to opentsdb
+
+Error handling on socket operations
+
+Error handling on AMQP connection
