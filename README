@@ -25,3 +25,7 @@ perl amqp_consumer_opentsdb.pl \
 --var opentsdb_port=4242 \
 --var debug=1 \
 --var input_format=<json|graphite>
+
+TODO:
+
+Add a protocol buffer input format
