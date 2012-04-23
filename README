@@ -11,6 +11,8 @@ Note: Multiple metrics can be sent in one AMQP message, as long as each entry is
 
 The OpenTSDB gateway will transform datacenter and host to be tags.
 
+The compression option specifies that the data is compressed with Snappy. Requires Compress::Snappy perl module to be installed.
+
 Command line options:
 
 perl amqp_consumer_opentsdb.pl \
@@ -24,8 +26,7 @@ perl amqp_consumer_opentsdb.pl \
 --var opentsdb_host=127.0.0.1 \
 --var opentsdb_port=4242 \
 --var debug=1 \
---var input_format=<json|graphite>
-
+--var input_format=<json|graphite> \
+--var compress=<1|0>
 TODO:
 
-Add a protocol buffer input format
