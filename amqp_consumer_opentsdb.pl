@@ -6,6 +6,7 @@ use Net::RabbitMQ;
 use IO::Socket;
 use Getopt::Long;
 use JSON;
+
 my %options;
 $options{'amqp_host'} = '127.0.0.1';
 $options{'amqp_port'} = 5672;
@@ -16,16 +17,21 @@ $options{'amqp_exchange'} = 'stats';
 $options{'amqp_queue'} = 'consumerqueue';
 $options{'opentsdb_host'} = '127.0.0.1';
 $options{'opentsdb_port'} = 4242;
+$options{'compress'} = 0;
 $options{'debug'} = 0;
 $options{'input_format'} = 'json';
 GetOptions ("var=s" => \%options);
 $options{'amqp_queue'} .= $$;
 
+if ($options{'compress'}) {
+  use Compress::Snappy;
+}
+
 my $mq = Net::RabbitMQ->new();
 $mq->connect($options{'amqp_host'} , { port => $options{'amqp_port'}, user => $options{'amqp_user'}, password => $options{'amqp_password'}, vhost => $options{'amqp_vhost'} });
 $mq->channel_open(1);
 $mq->queue_declare(1, $options{'amqp_queue'});
-$mq->queue_bind(1, $options{'amqp_queue'}, $options{'amqp_exchange'}, '');
+$mq->queue_bind(1, $options{'amqp_queue'}, $options{'amqp_exchange'}, '#');
 $mq->consume(1,$options{'amqp_queue'});
 
 ### Assuming metric format is 'some.metric.name.datacenter.host', tagged in opentsdb with datacenter= and host=
@@ -34,6 +40,9 @@ while(1) {
   my $msg = $mq->recv();
   if ($msg) {
     print "Received AMQP payload\n" if $options{'debug'};
+    if ($options{'compress'}) {
+      $msg->{'body'} = decompress($msg->{'body'});
+    }
     my $sock = IO::Socket::INET->new(PeerAddr => $options{'opentsdb_host'},
                                       PeerPort => $options{'opentsdb_port'},
                                       Proto    => 'tcp',
