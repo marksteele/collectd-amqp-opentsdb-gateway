@@ -66,7 +66,6 @@ while(1) {
           $output .= ' ' . $tk . '=' . $metric->{$k};
         } 
         $output .= "\n";
-	print $output;
 	print $sock $output;
       }
       close($sock);
