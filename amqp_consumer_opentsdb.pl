@@ -21,7 +21,6 @@ $options{'compress'} = 0;
 $options{'debug'} = 0;
 $options{'input_format'} = 'json';
 GetOptions ("var=s" => \%options);
-$options{'amqp_queue'} .= $$;
 
 if ($options{'compress'}) {
   use Compress::Snappy;
@@ -39,7 +38,6 @@ $mq->consume(1,$options{'amqp_queue'});
 while(1) {
   my $msg = $mq->recv();
   if ($msg) {
-    print "Received AMQP payload\n" if $options{'debug'};
     if ($options{'compress'}) {
       $msg->{'body'} = decompress($msg->{'body'});
     }
@@ -49,29 +47,27 @@ while(1) {
                                       Timeout  => 1);
     if ($sock) {
       foreach my $line (split(/\n/, $msg->{'body'})) {
-        print "IN: $line\n" if $options{'debug'};
         my $metric = {};
-        if ($options{'input_format'} eq 'graphite') {
-          if ($line =~ /((?:[^.]+\.)+)([^.]+)\.([^.]+)\s(\d+)(?:\.\d+)?\s(\d+)/) {
-            ($metric->{'metric'}, $metric->{'time'}, $metric->{'value'}, $metric->{'datacenter'}, $metric->{'host'}) = ($1, $5, $4, $2, $3);
-            chop($metric->{'metric'});
-          } else {
-            print "Error parsing input data: $line\n";
-            return; ## Error parsing input data
-          }
-        } elsif ($options{'input_format'} eq 'json') {
-          eval {
-            $metric = decode_json($line);
-          };
-          if ($@) {
-            print "Error parsing input data: $line\n";
-            return; ## Error parsing json
-          }
-        } else {
-          die("Unknown input format");
+        eval {
+          $metric = decode_json($line);
+        };
+        if ($@) {
+          print "Error parsing input data: $line\n";
+          next;
         }
-	print sprintf("OUT: put %s %d %s datacenter=%s host=%s\n",$metric->{'metric'},$metric->{'time'},$metric->{'value'},$metric->{'datacenter'},$metric->{'host'});
-	print $sock sprintf("put %s %d %s datacenter=%s host=%s\n",$metric->{'metric'},$metric->{'time'},$metric->{'value'},$metric->{'datacenter'},$metric->{'host'});
+        my $output = sprintf("put %s %d %s", $metric->{'plugin'},$metric->{'time'},$metric->{'value'});
+        delete($metric->{'plugin'});
+        delete($metric->{'time'});
+        delete($metric->{'value'});
+        foreach my $k (keys %{$metric}) {
+          my $tk = $k;
+          $tk =~ s/[ =]//g;
+          $metric->{$k} =~ s/[ =]//g;
+          $output .= ' ' . $tk . '=' . $metric->{$k};
+        } 
+        $output .= "\n";
+	print $output;
+	print $sock $output;
       }
       close($sock);
     }
