@@ -28,7 +28,7 @@ if ($options{'compress'}) {
   use Compress::Snappy;
 }
 
-my $sock = IO::Socket::INET->new(PeerAddr => $options{'opentsdb_host'}, PeerPort => $options{'opentsdb_port'}, Proto => 'tcp', Timeout  => 1);
+my $sock = IO::Socket::INET->new(PeerAddr => $options{'opentsdb_host'}, PeerPort => $options{'opentsdb_port'}, Proto => 'tcp', Timeout  => 1, Blocking => 0);
 $sock->sockopt(SO_KEEPALIVE);
 die("Unable to connect") unless $sock->connected();
 
@@ -65,9 +65,16 @@ while(1) {
         $output .= ' ' . $tk . '=' . $metric->{$k};
       } 
       $output .= "\n";
-      print $sock $output;
+      ## Should be using select to see if the socket is ready.... Ah well....
+      my $len = length($output);
+      my $written = 0;
+      while ($written != $len) {
+        $written += syswrite($sock,$output,$len - $written, $written);
+      }
     }
   } else {
     sleep(1);
   }
+  ## Drain inbound data from socket
+  sysread($sock,my $blarh,8192);
 }
