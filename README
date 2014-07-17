@@ -1,32 +1,22 @@
-AMQP to Graphite and OpenTSDB gateways.
+AMQP to OpenTSDB
 
-Input format is assumed to be either in graphite format:
+The format of message is assumed to be JSON (see my collectd json AMQP plugins)
 
-some.metric.name.datacenter.host value timestamp
-
-Or in json format:
 {"datacenter":"east_coast","timestamp":12345678,"value":123.12,"metric":"some.metric.name","host":"127.0.0.1"}
 
-Note: Multiple metrics can be sent in one AMQP message, as long as each entry is seperated by a newline character (\n)
+It is assumed that each message contains plugin, time, value. All other JSON hash keys will be turned into tags for opentsdb.
 
-The OpenTSDB gateway will transform datacenter and host to be tags.
+Multiple metrics can be sent in one AMQP message, as long as each entry is seperated by a newline character (\n)
 
-The compression option specifies that the data is compressed with Snappy. Requires Compress::Snappy perl module to be installed.
+
+The program will attempt to randomly pick an AMQP broker and OpenTSDB  endpoint if more than one specified in the command line options.
 
 Command line options:
 
-perl amqp_consumer_opentsdb.pl \
---var amqp_host=127.0.0.1 \
---var amqp_port=5672 \
---var amqp_user=username \
---var amqp_password=password \
---var amqp_vhost=/vhost \
---var amqp_exchange=metrics \
---var amqp_queue=queue \
---var opentsdb_host=127.0.0.1 \
---var opentsdb_port=4242 \
---var debug=1 \
---var input_format=<json|graphite> \
---var compress=<1|0>
-TODO:
+perl /usr/local/bin/amqp_consumer_opentsdb.pl  \
+    --amqp_hosts amqp://user:pass@mq01:5672/monitoring,amqp://user:pass@mq02:5672/monitoring \
+    --amqp_exchanges metrics,metrics_amqp \
+    --opentsdb_hosts opentsdb://127.0.0.1:4242,opentsdb://10.10.10.10:4242
+    
+
 
