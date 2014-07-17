@@ -22,7 +22,7 @@ my $debug = 0;
 
 GetOptions (
   "amqp_hosts=s" => \@amqp_hosts, 
-  "amqp_exchange=s" => \@amqp_exchanges, 
+  "amqp_exchanges=s" => \@amqp_exchanges, 
   "amqp_queue=s" => \$amqp_queue, 
   "amqp_topic=s" => \$amqp_topic,
   "opentsdb_hosts=s" => \@opentsdb_hosts,
@@ -30,6 +30,7 @@ GetOptions (
 );
 @amqp_hosts = split(/,/,join(',',@amqp_hosts));
 @amqp_exchanges = split(/,/,join(',',@amqp_exchanges));
+@opentsdb_hosts = split(/,/,join(',',@opentsdb_hosts));
 
 while(1) {
   print "Starting up\n" if $debug;
