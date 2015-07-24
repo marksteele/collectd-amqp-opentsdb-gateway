@@ -16,7 +16,5 @@ Command line options:
 perl /usr/local/bin/amqp_consumer_opentsdb.pl  \
     --amqp_hosts amqp://user:pass@mq01:5672/monitoring,amqp://user:pass@mq02:5672/monitoring \
     --amqp_exchanges metrics,metrics_amqp \
+    --amqp_queue_max_length 10000 \
     --opentsdb_hosts opentsdb://127.0.0.1:4242,opentsdb://10.10.10.10:4242
-    
-
-
